@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>استخدام FOROPI AI</title>
+  <style>
+    body {
+      max-width: 680px;
+      margin: 40px auto;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f4f5f7;
+      color: #202124;
+    }
+    main {
+      padding: 24px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px #00000012;
+    }
+    label { display: block; margin: 16px 0 7px; font-weight: bold; }
+    input, textarea, select, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 11px;
+      font: inherit;
+      border: 1px solid #ccd0d5;
+      border-radius: 8px;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    button {
+      margin-top: 16px;
+      border: 0;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    #response {
+      min-height: 60px;
+      margin-top: 18px;
+      padding: 14px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #f1f3f5;
+      border-radius: 8px;
+    }
+    .note { color: #666; font-size: 13px; line-height: 1.7; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>استخدام FOROPI AI</h1>
+    <p class="note">
+      أدخل مفتاحك الجديد هنا. لا تحفظه في صفحة عامة أو تشارك الصفحة وفيها المفتاح.
+    </p>
+
+    <label for="apiKey">مفتاح API</label>
+    <input id="apiKey" type="password" autocomplete="off"
+           placeholder="foropi_live_..." required>
+
+    <label for="question">رسالتك</label>
+    <textarea id="question" placeholder="اكتب طلبك هنا..." required></textarea>
+
+    <label for="quality">الجودة</label>
+    <select id="quality">
+      <option value="low">منخفض</option>
+      <option value="medium" selected>متوسط</option>
+      <option value="high">عالٍ</option>
+    </select>
+
+    <label for="profile">ملف التوليد</label>
+    <select id="profile">
+      <option>1.5</option>
+      <option>2</option>
+      <option>2.5</option>
+      <option selected>3</option>
+      <option>5</option>
+    </select>
+
+    <button id="sendButton" type="button">إرسال</button>
+    <div id="response" aria-live="polite">ستظهر الإجابة هنا.</div>
+  </main>
+
+  <script>
+    const API_URL =
+      "https://boats-congratulations-environment-gold.trycloudflare.com/chat";
+
+    const button = document.getElementById("sendButton");
+    const output = document.getElementById("response");
+
+    button.addEventListener("click", async () => {
+      const apiKey = document.getElementById("apiKey").value.trim();
+      const message = document.getElementById("question").value.trim();
+
+      if (!apiKey || !message) {
+        output.textContent = "أدخل مفتاح API واكتب رسالتك.";
+        return;
+      }
+
+      button.disabled = true;
+      output.textContent = "جارٍ الاتصال...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            message,
+            model_profile: document.getElementById("profile").value,
+            quality: document.getElementById("quality").value
+          })
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || `خطأ HTTP ${response.status}`);
+        }
+
+        output.textContent = data.reply || "لم يرجع الخادم نصاً في reply.";
+      } catch (error) {
+        output.textContent =
+          `تعذر الاتصال: ${error.message}\n\n` +
+          "إذا ظهر NetworkError، فتأكد من أن نفق Cloudflare يعمل " +
+          "وأن سيرفر Flask يسمح بطلبات CORS من مصدر هذه الصفحة.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
